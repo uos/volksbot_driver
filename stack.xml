@@ -1,0 +1,14 @@
+<stack>
+  <description brief="Driver for the Volksbot robot">
+
+    A driver for the Volksbot robot made by Fraunhofer GED.
+    Uses libepos2 for USB connections, which is available here:
+    https://launchpad.net/~kbs/+archive/kbs
+
+  </description>
+  <author>Maintained by Jochen Sprickerhof</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/volksbot_driver</url>
+  <depend stack="ros" />
+</stack>

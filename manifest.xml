@@ -1,0 +1,20 @@
+<package>
+  <description brief="volksbot">
+
+     Driver for the Volksbot robot. Depends on libepos2.
+
+  </description>
+  <author>Jochen Sprickerhof</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/volksbot</url>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="nav_msgs"/>
+  <depend package="tf"/>
+
+  <rosdep name="libepos2-dev" />
+</package>
+
+
