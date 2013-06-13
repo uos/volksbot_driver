@@ -35,7 +35,7 @@ class Comm
   public:
     virtual ~Comm() { }
     virtual void send_odometry(double x, double y, double theta, double v_x,
-        double v_theta, double wheelpos_l, double wheelpos_l) = 0;
+        double v_theta, double wheelpos_l, double wheelpos_r) = 0;
 };
 
 #endif
