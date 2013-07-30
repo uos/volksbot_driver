@@ -94,7 +94,8 @@ void Volksbot::odometry()
   long wheel_l = enc_left - enc_left_last;
   long wheel_r = enc_right - enc_right_last;
 
-  if(std::signbit(enc_left) != std::signbit(enc_left_last))
+  // handle overflow (> 10000 required to ensure we don't do this on zero crossings)
+  if((abs(enc_left) > 10000) && (std::signbit(enc_left) != std::signbit(enc_left_last)))
   {
     if(std::signbit(enc_left))
       wheel_l = std::numeric_limits<int32_t>::max() - enc_left_last - std::numeric_limits<int32_t>::min() + enc_left;
@@ -102,7 +103,7 @@ void Volksbot::odometry()
       wheel_l = std::numeric_limits<int32_t>::max() - enc_left - std::numeric_limits<int32_t>::min() + enc_left_last;
   }
 
-  if(std::signbit(enc_right) != std::signbit(enc_right_last))
+  if((abs(enc_right) > 10000) && (std::signbit(enc_right) != std::signbit(enc_right_last)))
   {
     if(std::signbit(enc_right))
       wheel_r = std::numeric_limits<int32_t>::max() - enc_right_last - std::numeric_limits<int32_t>::min() + enc_right;
