@@ -11,16 +11,20 @@
   <xacro:property name="wheel_radius" value="0.0985" />
   <xacro:property name="axis_length" value="0.41" />
   <xacro:property name="wheel_x_offset" value="0.225" />
-  <xacro:property name="wheel_z_offset" value="0.0" />
+  <xacro:property name="wheel_z_offset" value="-0.0275" />
   <xacro:property name="turning_adaptation" value="0.95" />
   <xacro:property name="base_mass" value="10" />
   <xacro:property name="wheel_mass" value="0.25" />
+
+  <xacro:property name="base_link_length" value="0.55"/>
+  <xacro:property name="base_link_width" value="0.32"/>
+  <xacro:property name="base_link_height" value="0.155"/>
 
   <link name="base_link">
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <!--<box size="0.55 0.32 0.155" />-->
+        <!--<box size="${base_link_length} ${base_link_width} ${base_link_height}" />-->
         <mesh filename="package://volksbot_driver/meshes/base.stl"/>
       </geometry>
       <material name="grey" >
@@ -30,11 +34,11 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <!--<box size="0.55 0.32 0.155" />-->
+        <!--<box size="${base_link_length} ${base_link_width} ${base_link_height}" />-->
         <mesh filename="package://volksbot_driver/meshes/base.stl"/>
       </geometry>
     </collision>
-    <xacro:box_inertial x="0.55" y="0.32" z="0.155" mass="${base_mass}"/>
+    <xacro:box_inertial x="${base_link_length}" y="${base_link_width}" z="${base_link_height}" mass="${base_mass}"/>
   </link>
 
   <xacro:macro name="volksbot_wheel" params="name xyz rotate_visual">
@@ -101,7 +105,8 @@
   </link>
 
   <joint name="base_footprint_joint" type="fixed">
-    <origin xyz="0 0 ${-wheel_z_offset + wheel_radius}" rpy="0 0 0" />
+    <!-- base link has 5cm clearence from ground and height of 15.5cm -->
+    <origin xyz="0 0 ${0.155/2 + 0.05}" rpy="0 0 0" />
     <parent link="base_footprint"/>
     <child link="base_link" />
   </joint>
