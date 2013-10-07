@@ -5,7 +5,7 @@
   xmlns:xacro="http://ros.org/wiki/xacro"
   name="volksbot_base">
 
-  <include filename="$(find volksbot_driver)/urdf/common.xacro" />
+  <xacro:include filename="$(find volksbot_driver)/urdf/common.xacro" />
 
   <xacro:property name="wheel_width" value="0.06" />
   <xacro:property name="wheel_radius" value="0.0985" />
