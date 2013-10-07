@@ -92,17 +92,8 @@
   <xacro:volksbot_wheel name="right_rear" xyz="${-wheel_x_offset} ${-axis_length/2} ${wheel_z_offset}" rotate_visual="0" />
 
   <!-- base_footprint is a fictitious link(frame) that is on the ground right below base_link origin,
-       navigation stack dedpends on this frame -->
-  <link name="base_footprint">
-    <!-- this needs to have a fake inertial element, otherwise all children will be ignored by Gazebo -->
-    <inertial>
-      <mass value="0.0001" />
-      <origin xyz="0 0 0" />
-      <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
-        iyy="0.0001" iyz="0.0"
-        izz="0.0001" />
-    </inertial>
-  </link>
+       navigation stack depends on this frame -->
+  <link name="base_footprint"/>
 
   <joint name="base_footprint_joint" type="fixed">
     <!-- base link has 5cm clearence from ground and height of 15.5cm -->
