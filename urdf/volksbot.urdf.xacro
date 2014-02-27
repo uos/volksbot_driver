@@ -117,8 +117,7 @@
   </link>
 
   <joint name="base_footprint_joint" type="fixed">
-    <!-- base link has 5cm clearence from ground and height of 15.5cm -->
-    <origin xyz="0 0 ${0.155/2 + 0.05}" rpy="0 0 0" />
+    <origin xyz="0 0 ${wheel_radius -  wheel_z_offset}" rpy="0 0 0" />
     <parent link="base_footprint"/>
     <child link="base_link" />
   </joint>
