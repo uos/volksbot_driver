@@ -8,6 +8,7 @@
   <xacro:property name="M_PI" value="3.1415926535897931" />
 
   <xacro:property name="wheel_width" value="0.06" />
+  <!-- This is the wheel radius for the robot height, the one for the odometry is in volksbot_node.cpp  -->
   <xacro:property name="wheel_radius" value="0.103" />
   <xacro:property name="axis_length" value="0.41" />
   <xacro:property name="wheel_x_offset" value="0.225" />
