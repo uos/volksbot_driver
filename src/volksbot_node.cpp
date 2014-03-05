@@ -219,6 +219,8 @@ int main(int argc, char** argv)
   ros::NodeHandle n;
   ros::NodeHandle nh_ns("~");
 
+  /* This is the wheel Radius for the odometry, accounting for some slip in the movement.
+   * therefor it's not the same as the one in the volksbot.urdf.xacro */
   double wheel_radius;
   nh_ns.param("wheel_radius", wheel_radius, 0.0985);
   double axis_length;
