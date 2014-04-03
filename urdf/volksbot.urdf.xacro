@@ -48,7 +48,7 @@
     </inertial>
   </link>
 
-  <xacro:macro name="volksbot_wheel" params="name xyz rotate_visual">
+  <xacro:macro name="volksbot_wheel" params="name xyz rotate_visual friction">
     <!-- rotate_visual: 0 for right side, 1 for left side -->
     <link name="${name}_wheel_link">
       <visual>
@@ -82,8 +82,8 @@
     <!-- friction parameters -->
     <gazebo reference="${name}_wheel_link">
       <!-- Turtlebot: -->
-      <mu1 value="10"/>
-      <mu2 value="10"/>
+      <mu1 value="${friction}"/>
+      <mu2 value="${friction}"/>
       <kp value="100000000.0"/>
       <kd value="10000.0"/>
       <material value="Gazebo/FlatBlack" />
@@ -97,12 +97,12 @@
     </joint>
   </xacro:macro>
 
-  <xacro:volksbot_wheel name="left_front" xyz="${wheel_x_offset} ${axis_length/2} ${wheel_z_offset}" rotate_visual="1" />
-  <xacro:volksbot_wheel name="left_middle" xyz="0 ${axis_length/2} ${wheel_z_offset}" rotate_visual="1" />
-  <xacro:volksbot_wheel name="left_rear" xyz="${-wheel_x_offset} ${axis_length/2} ${wheel_z_offset}" rotate_visual="1" />
-  <xacro:volksbot_wheel name="right_front" xyz="${wheel_x_offset} ${-axis_length/2} ${wheel_z_offset}" rotate_visual="0" />
-  <xacro:volksbot_wheel name="right_middle" xyz="0 ${-axis_length/2} ${wheel_z_offset}" rotate_visual="0" />
-  <xacro:volksbot_wheel name="right_rear" xyz="${-wheel_x_offset} ${-axis_length/2} ${wheel_z_offset}" rotate_visual="0" />
+  <xacro:volksbot_wheel name="left_front" xyz="${wheel_x_offset} ${axis_length/2} ${wheel_z_offset}" rotate_visual="1" friction="1.0" />
+  <xacro:volksbot_wheel name="left_middle" xyz="0 ${axis_length/2} ${wheel_z_offset}" rotate_visual="1" friction="100.0" />
+  <xacro:volksbot_wheel name="left_rear" xyz="${-wheel_x_offset} ${axis_length/2} ${wheel_z_offset}" rotate_visual="1" friction="1.0" />
+  <xacro:volksbot_wheel name="right_front" xyz="${wheel_x_offset} ${-axis_length/2} ${wheel_z_offset}" rotate_visual="0" friction="1.0" />
+  <xacro:volksbot_wheel name="right_middle" xyz="0 ${-axis_length/2} ${wheel_z_offset}" rotate_visual="0" friction="100.0" />
+  <xacro:volksbot_wheel name="right_rear" xyz="${-wheel_x_offset} ${-axis_length/2} ${wheel_z_offset}" rotate_visual="0" friction="1.0" />
 
   <!-- base_footprint is a fictitious link(frame) that is on the ground right below base_link origin,
        navigation stack dedpends on this frame -->
