@@ -21,7 +21,6 @@ catkin_package(
              geometry_msgs
              nav_msgs
              tf
-             libepos2-dev
     INCLUDE_DIRS include)
              
 include(${LIBEPOS2_USE_FILE})
