@@ -20,8 +20,7 @@ catkin_package(
              sensor_msgs
              geometry_msgs
              nav_msgs
-             tf
-    INCLUDE_DIRS include)
+             tf)
 
 include(${LIBEPOS2_USE_FILE})
 
