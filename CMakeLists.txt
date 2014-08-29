@@ -28,3 +28,4 @@ include_directories(${catkin_INCLUDE_DIRS} include/)
 
 add_executable(volksbot src/volksbot_node.cpp src/volksbot.cpp)
 target_link_libraries(volksbot ${LIBEPOS2_LIBRARIES} ${catkin_LIBRARIES})
+add_dependencies(volksbot ${catkin_EXPORTED_TARGETS})
