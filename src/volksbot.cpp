@@ -43,14 +43,22 @@ Volksbot::Volksbot(
         double wheel_radius,
         double axis_length,
         double turning_adaptation,
-        int gear_ratio) :
+        int gear_ratio,
+        int max_vel_l,
+        int max_vel_r,
+        int max_acc_l,
+        int max_acc_r) :
       epos2_left_(0x02),
       epos2_right_(0x01),
       comm_(comm),
       wheel_radius_(wheel_radius),
       axis_length_(axis_length),
       turning_adaptation_(turning_adaptation),
-      gear_ratio_(gear_ratio)
+      gear_ratio_(gear_ratio),
+      max_vel_l_(max_vel_l),
+      max_vel_r_(max_vel_r),
+      max_acc_l_(max_acc_l),
+      max_acc_r_(max_acc_r)
 {
   epos2_left_.init();
   epos2_right_.init();
@@ -60,6 +68,26 @@ Volksbot::Volksbot(
 
   epos2_left_.enableMotor(epos2_left_.VELOCITY);
   epos2_right_.enableMotor(epos2_right_.VELOCITY);
+
+  epos2_left_.setProfileData(
+      0, // Velocity
+      max_vel_l_, // Max Velocity
+      0, // Acceleration
+      0, // Deceleration
+      0, // QS Decel
+      max_acc_l_, // Max acc
+      0 // Type: Trapecoidal
+      );
+
+  epos2_right_.setProfileData(
+      0, // Velocity
+      max_vel_r_, // Max Velocity
+      0, // Acceleration
+      0, // Deceleration
+      0, // QS Decel
+      max_acc_r_, // Max acc
+      0 // Type: Trapecoidal
+      );
 
   epos2_left_.setOperationMode(epos2_left_.VELOCITY);
   epos2_right_.setOperationMode(epos2_right_.VELOCITY);
