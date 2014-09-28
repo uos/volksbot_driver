@@ -46,7 +46,8 @@ class Volksbot
         int max_vel_l,
         int max_vel_r,
         int max_acc_l,
-        int max_acc_r);
+        int max_acc_r,
+        bool drive_backwards);
     ~Volksbot();
     void set_wheel_speed(double _v_l_soll, double _v_r_soll);
     void odometry();

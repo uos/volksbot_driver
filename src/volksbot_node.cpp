@@ -235,6 +235,8 @@ int main(int argc, char** argv)
   nh_ns.param("max_acc_l", max_acc_l, 10000);
   int max_acc_r;
   nh_ns.param("max_acc_r", max_acc_r, 10000);
+  bool drive_backwards;
+  nh_ns.param("drive_backwards", drive_backwards, false);
 
   double turning_adaptation;
   nh_ns.param("turning_adaptation", turning_adaptation, 0.95);
@@ -248,7 +250,7 @@ int main(int argc, char** argv)
 
   ROSComm roscomm(n, sigma_x, sigma_theta, cov_x_y, cov_x_theta, cov_y_theta);
 
-  Volksbot volksbot(roscomm, wheel_radius, axis_length, turning_adaptation, gear_ratio, max_vel_l, max_vel_r, max_acc_l, max_acc_r);
+  Volksbot volksbot(roscomm, wheel_radius, axis_length, turning_adaptation, gear_ratio, max_vel_l, max_vel_r, max_acc_l, max_acc_r, drive_backwards);
 
   bool publish_tf;
   nh_ns.param("publish_tf", publish_tf, false);

@@ -47,9 +47,10 @@ Volksbot::Volksbot(
         int max_vel_l,
         int max_vel_r,
         int max_acc_l,
-        int max_acc_r) :
-      epos2_left_(0x02),
-      epos2_right_(0x01),
+        int max_acc_r,
+        bool drive_backwards) :
+      epos2_left_(drive_backwards ? 0x01 : 0x02),
+      epos2_right_(drive_backwards ? 0x02 : 0x01),
       comm_(comm),
       wheel_radius_(wheel_radius),
       axis_length_(axis_length),
