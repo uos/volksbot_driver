@@ -14,13 +14,7 @@ find_package(
 find_package(
             LibEPOS2 NO_MODULE REQUIRED)
 
-catkin_package(
-    CATKIN_DEPENDS
-             roscpp
-             sensor_msgs
-             geometry_msgs
-             nav_msgs
-             tf)
+catkin_package()
 
 include(${LIBEPOS2_USE_FILE})
 
