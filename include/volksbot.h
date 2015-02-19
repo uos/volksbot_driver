@@ -50,6 +50,7 @@ class Volksbot
         bool drive_backwards);
     ~Volksbot();
     void set_wheel_speed(double _v_l_soll, double _v_r_soll);
+    double get_max_vel();
     void odometry();
 
   private:
