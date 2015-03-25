@@ -102,6 +102,10 @@ Volksbot::~Volksbot()
   epos2_right_.close();
 }
 
+double Volksbot::get_max_vel(){
+  return (max_vel_r_ + max_vel_l_) * M_PI * wheel_radius_ / (60.0 * gear_ratio_);
+}
+
 void Volksbot::set_wheel_speed(double _v_l_soll, double _v_r_soll)
 {
   epos2_left_.setTargetVelocity(_v_l_soll / ( 2.0 * M_PI * wheel_radius_) * 60.0 * gear_ratio_);
