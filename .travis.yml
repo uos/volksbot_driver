@@ -6,15 +6,15 @@ env:
   global:
     - CATKIN_WS=~/catkin_ws
     - CATKIN_WS_SRC=${CATKIN_WS}/src
-    - LIB_DIR=~/libs
   matrix:
     - CI_ROS_DISTRO="indigo"
     - CI_ROS_DISTRO="jade"
 install:
   - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+  - sudo add-apt-repository -y ppa:kbs/kbs
   - sudo apt-get update -qq
-  - sudo apt-get install -qq -y python-rosdep python-catkin-tools
+  - sudo apt-get install -qq -y python-rosdep python-catkin-tools libepos2-dev
   - sudo rosdep init
   - rosdep update
   # Use rosdep to install all dependencies (including ROS itself)
@@ -22,30 +22,12 @@ install:
 script:
   - source /opt/ros/$CI_ROS_DISTRO/setup.bash
   - mkdir -p $CATKIN_WS_SRC
+  - ln -s $TRAVIS_BUILD_DIR $CATKIN_WS_SRC
   - cd $CATKIN_WS
   - catkin init
   # Enable install space
   - catkin config --install
-  - catkin build --limit-status-rate 0.1 --no-notify 
-  - source $CATKIN_WS/devel/setup.bash
-  # install libftdi; since wily, this is in Ubuntu (libftdi1-dev)
-  - sudo apt-get install -qq -y libusb-1.0-0-dev
-  - mkdir $LIB_DIR
-  - cd $LIB_DIR
-  - git clone git://developer.intra2net.com/libftdi
-  - cd libftdi
-  - mkdir build && cd build
-  - cmake -DCMAKE_INSTALL_PREFIX="$CATKIN_WS/devel" ..
-  - make install
-  # install libepos2
-  - cd $LIB_DIR
-  - git clone -b master https://github.com/uos/epos2_motor_controller.git
-  - cd epos2_motor_controller
-  - mkdir build && cd build
-  - cmake -DCMAKE_INSTALL_PREFIX="$CATKIN_WS/devel" ..
-  - make install
   # Build [and Install] packages
-  - ln -s $TRAVIS_BUILD_DIR $CATKIN_WS_SRC
   - catkin build --limit-status-rate 0.1 --no-notify -DCMAKE_BUILD_TYPE=Release
   # Build tests
   - catkin build --limit-status-rate 0.1 --no-notify --make-args tests
