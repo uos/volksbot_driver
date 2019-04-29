@@ -13,14 +13,14 @@
   <url type="bug_tracker">https://github.com/uos/volksbot_driver/issues</url>
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>epos2-motor-controller</build_depend>
+  <build_depend>epos2_motor_controller</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>tf</build_depend>
 
-  <exec_depend>epos2-motor-controller</exec_depend>
+  <exec_depend>epos2_motor_controller</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
