@@ -207,8 +207,8 @@ void ROSCall::velCallback(const geometry_msgs::Twist::ConstPtr& msg)
   double max_vel = volksbot_.get_max_vel();
   double velocity = msg->linear.x;
 
-  velocity = std::min(max_vel, msg->linear.x);
-  velocity = std::max(-max_vel, msg->linear.x);
+  velocity = std::min(max_vel, velocity);
+  velocity = std::max(-max_vel, velocity);
   volksbot_.set_wheel_speed(velocity - axis_length_ * msg->angular.z * 0.5, velocity + axis_length_ * msg->angular.z * 0.5);
 }
 
