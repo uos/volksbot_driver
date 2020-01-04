@@ -14,9 +14,6 @@ matrix:
     - name: "Kinetic"
       env: ROS_DISTRO=kinetic
 
-    - name: "Lunar"
-      env: ROS_DISTRO=lunar
-
     - name: "Melodic"
       env: ROS_DISTRO=melodic
 
