@@ -11,9 +11,6 @@ notifications:
 
 matrix:
   include:
-    - name: "Kinetic"
-      env: ROS_DISTRO=kinetic
-
     - name: "Melodic"
       env: ROS_DISTRO=melodic
 
