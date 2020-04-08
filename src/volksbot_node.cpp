@@ -48,7 +48,9 @@ class ROSComm : public Comm
         double sigma_theta,
         double cov_x_y,
         double cov_x_theta,
-        double cov_y_theta) :
+        double cov_y_theta,
+	size_t num_wheels,
+	std::vector<std::string> joint_names) :
       n_(n),
       sigma_x_(sigma_x),
       sigma_theta_(sigma_theta),
@@ -57,7 +59,10 @@ class ROSComm : public Comm
       cov_y_theta_(cov_y_theta),
       publish_tf_(false),
       odom_pub_(n_.advertise<nav_msgs::Odometry> ("odom", 10)),
-      joint_pub_(n_.advertise<sensor_msgs::JointState> ("joint_states", 1)) { }
+      joint_pub_(n_.advertise<sensor_msgs::JointState> ("joint_states", 1)),
+      num_wheels_(num_wheels),
+      joint_names_(joint_names){ }
+
     virtual void send_odometry(double x, double y, double theta, double v_x,
         double v_theta, double wheelpos_l, double wheelpos_r);
 
@@ -75,6 +80,8 @@ class ROSComm : public Comm
     tf::TransformBroadcaster odom_broadcaster_;
     ros::Publisher odom_pub_;
     ros::Publisher joint_pub_;
+    size_t num_wheels_;
+    std::vector<std::string> joint_names_;
 };
 
 void ROSComm::setTFPrefix(const std::string &tf_prefix)
@@ -170,17 +177,20 @@ void ROSComm::send_odometry(double x, double y, double theta, double v_x, double
 
   sensor_msgs::JointState joint_state;
   joint_state.header.stamp = ros::Time::now();
-  joint_state.name.resize(6);
-  joint_state.position.resize(6);
-  joint_state.name[0] = "left_front_wheel_joint";
-  joint_state.name[1] = "left_middle_wheel_joint";
-  joint_state.name[2] = "left_rear_wheel_joint";
-  joint_state.name[3] = "right_front_wheel_joint";
-  joint_state.name[4] = "right_middle_wheel_joint";
-  joint_state.name[5] = "right_rear_wheel_joint";
+  joint_state.name.resize(num_wheels_);
+  joint_state.position.resize(num_wheels_);
+  joint_state.name = joint_names_;
 
-  joint_state.position[0] = joint_state.position[1] = joint_state.position[2] = wheelpos_l;
-  joint_state.position[3] = joint_state.position[4] = joint_state.position[5] = wheelpos_r;
+  if(num_wheels_ == 6)
+  {
+    joint_state.position[0] = joint_state.position[1] = joint_state.position[2] = wheelpos_l;
+    joint_state.position[3] = joint_state.position[4] = joint_state.position[5] = wheelpos_r;
+  }
+  else
+  {
+    joint_state.position[0] = joint_state.position[1] = wheelpos_l;
+    joint_state.position[2] = joint_state.position[3] = wheelpos_r; 
+  }
 
   joint_pub_.publish(joint_state);
 }
@@ -246,6 +256,50 @@ int main(int argc, char** argv)
   double turning_adaptation;
   nh_ns.param("turning_adaptation", turning_adaptation, 0.95);
 
+  int num_wheels;
+  // 4 or 6 wheels are supported
+  nh_ns.param("num_wheels", num_wheels, 6);
+  if(num_wheels != 4 && num_wheels != 6)
+  {
+    ROS_FATAL("Wrong configuration of the volksbot driver: Only four or six wheels are supported! See param \"num_wheels\".");
+    exit(1);
+  }
+
+  std::vector<std::string> joint_names;
+  if(nh_ns.getParam("joint_names", joint_names))
+  {
+    if(num_wheels != joint_names.size())
+    {
+      ROS_FATAL("Wrong configuration of the volksbot driver: The number of joint names must equak the number of wheels!");
+      exit(1);
+    }
+    ROS_INFO("Using joint names from \"joint_names\" parameter list");    
+  }
+  else if(num_wheels == 6)
+  {
+    ROS_INFO("Using default joint names for six wheels.");    
+    // default values;
+    joint_names = {
+      "left_front_wheel_joint",
+      "left_middle_wheel_joint",
+      "left_rear_wheel_joint",
+      "right_front_wheel_joint",
+      "right_middle_wheel_joint",
+      "right_rear_wheel_joint"
+    };
+  }
+  else
+  {
+    // default values;
+    ROS_INFO("Using default joint names for four wheels.");    
+    joint_names = {
+      "left_front_wheel_joint",
+      "left_rear_wheel_joint",
+      "right_front_wheel_joint",
+      "right_rear_wheel_joint"
+    };
+  }
+
   double sigma_x, sigma_theta, cov_x_y, cov_x_theta, cov_y_theta;
   nh_ns.param("x_stddev", sigma_x, 0.002);
   nh_ns.param("rotation_stddev", sigma_theta, 0.017);
@@ -253,7 +307,7 @@ int main(int argc, char** argv)
   nh_ns.param("cov_xrotation", cov_x_theta, 0.0);
   nh_ns.param("cov_yrotation", cov_y_theta, 0.0);
 
-  ROSComm roscomm(n, sigma_x, sigma_theta, cov_x_y, cov_x_theta, cov_y_theta);
+  ROSComm roscomm(n, sigma_x, sigma_theta, cov_x_y, cov_x_theta, cov_y_theta, num_wheels, joint_names);
 
   Volksbot volksbot(roscomm, wheel_radius, axis_length, turning_adaptation, gear_ratio, max_vel_l, max_vel_r, max_acc_l, max_acc_r, drive_backwards);
 
