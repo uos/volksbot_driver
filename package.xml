@@ -1,6 +1,6 @@
 <package format="2">
   <name>volksbot_driver</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <description>
      Driver for the Volksbot robot.
   </description>

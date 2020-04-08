@@ -2,8 +2,8 @@
 Changelog for package volksbot_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2020-04-08)
+------------------
 * support for four and six wheels, as well as changing the joint names
 * Contributors: Sebastian Pütz
 
