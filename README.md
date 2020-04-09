@@ -23,7 +23,7 @@ volksbot base for your needs.
 | `cov_xrotation`      | `double`   | `0.0`         |
 | `cov_yrotation`      | `double`   | `0.0`         |
 | `publish_tf`         | `bool`     | `False`       |
-| `num_wheels`         | `int`      | `4`           |
+| `num_wheels`         | `int`      | `6`           |
 | `joint_names`        | `str list` |               |
 
 ## Build Status
