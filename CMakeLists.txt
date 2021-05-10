@@ -9,19 +9,24 @@ find_package(
                  sensor_msgs
                  geometry_msgs
                  nav_msgs
-                 tf)
+                 tf
+                 libepos2)
 
-find_package(
-            LibEPOS2 NO_MODULE REQUIRED)
+# find_package(
+#             LibEPOS2 NO_MODULE REQUIRED)
 
 catkin_package()
 
-include(${LIBEPOS2_USE_FILE})
+find_package(LibFTDI1 NO_MODULE REQUIRED)
+include(${LIBFTDI_USE_FILE})
 
 include_directories(${catkin_INCLUDE_DIRS} include/)
 
 add_executable(volksbot src/volksbot_node.cpp src/volksbot.cpp)
-target_link_libraries(volksbot ${LIBEPOS2_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(volksbot 
+    ${LIBEPOS2_LIBRARIES} 
+    ${catkin_LIBRARIES}
+    ${LIBFTDI_LIBARIES})
 add_dependencies(volksbot ${catkin_EXPORTED_TARGETS})
 
 install(TARGETS volksbot RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
