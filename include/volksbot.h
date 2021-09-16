@@ -30,7 +30,7 @@
 #ifndef _VOLKSBOT_H_
 #define _VOLKSBOT_H_
 
-#include <Epos2.h>
+#include <epos2_motor_controller/Epos2.h>
 
 #include "comm.h"
 
