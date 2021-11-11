@@ -1,3 +1,13 @@
+# Volksbot Driver
+
+Revised version of volksbot_driver. Works with ROS-noetic.
+
+## Dependencies
+
+[epos2_motor_controller](https://gitlab.informatik.uni-osnabrueck.de/kbs_sensors/epos2_motor_controller)
+
+## Old README:
+
 Volksbot Driver
 ===============
 
