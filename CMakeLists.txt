@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 
-project(volksbot_driver)
+project(volksbot_driver VERSION 1.0.2)
 
 find_package(catkin REQUIRED 
     COMPONENTS
