@@ -6,6 +6,7 @@ Revised version of volksbot_driver. Works with ROS-noetic.
 
 [epos2_motor_controller](https://github.com/uos/epos2_motor_controller)
 
+
 ## Old README:
 
 Volksbot Driver
@@ -36,12 +37,3 @@ volksbot base for your needs.
 | `num_wheels`         | `int`      | `6`           |
 | `joint_names`        | `str list` |               |
 
-## Build Status
-
-|        | Master | Melodic |
-|--------|--------|---------|
-| Travis | [![Build Status](https://api.travis-ci.org/uos/volksbot_driver.svg?branch=master)](https://travis-ci.org/uos/volksbot_driver) | [![Build Status](https://api.travis-ci.org/uos/volksbot_driver.svg?branch=melodic)](https://travis-ci.org/uos/volksbot_driver) |
-| Binary Deb | | [![Build Status](http://build.ros.org/buildStatus/icon?job=Mbin_uB64__volksbot_driver__ubuntu_bionic_amd64__binary)](http://build.ros.org/job/Mbin_uB64__volksbot_driver__ubuntu_bionic_amd64__binary) |
-| Source Deb | | [![Build Status](http://build.ros.org/buildStatus/icon?job=Msrc_uB__volksbot_driver__ubuntu_bionic__source)](http://build.ros.org/job/Msrc_uB__volksbot_driver__ubuntu_bionic__source/) |
-| Develop | | [![Build Status](http://build.ros.org/buildStatus/icon?job=Mdev__volksbot_driver__ubuntu_bionic_amd64)](http://build.ros.org/job/Mdev__volksbot_driver__ubuntu_bionic_amd64) |
-| Documentation | | [![Build Status](http://build.ros.org/buildStatus/icon?job=Mdoc__volksbot_driver__ubuntu_bionic_amd64)](http://build.ros.org/job/Mdoc__volksbot_driver__ubuntu_bionic_amd64) |
