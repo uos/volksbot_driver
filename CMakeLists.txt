@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.2)
 
 project(volksbot_driver VERSION 1.0.2)
 
