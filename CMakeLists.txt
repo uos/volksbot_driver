@@ -1,9 +1,15 @@
 cmake_minimum_required(VERSION 3.8)
-project(volksbot_driver)
+project(volksbot_driver VERSION 1.0.3)
 
 # Configure C++ compiler
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
+  if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+  endif()
 endif()
 
 # Find dependencies

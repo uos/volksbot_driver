@@ -2,9 +2,15 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>volksbot_driver</name>
-  <version>1.0.0</version>
+  <version>1.0.3</version>
   <description>ROS2 node for the 4- or 6-wheeled Volksbots</description>
-  <maintainer email="thomas.wiemann@informatik.hs-fulda.de">robot</maintainer>
+  <maintainer email="thomas.wiemann@informatik.hs-fulda.de">Thomas Wiemann</maintainer>
+  <maintainer email="amock@uos.de">Alexander Mock</maintainer>
+
+  <author email="amock@uos.de">Alexander Mock</author>
+  <author email="thomas.wiemann@informatik.hs-fulda.de">Thomas Wiemann</author>
+  <author email="spuetz@uos.de">Sebastian Pütz</author>
+  <author email="jochen@sprickerhof.de">Jochen Sprickerhof</author>
   <license>BSD 3 clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -15,7 +21,7 @@
   <build_depend>nav_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>tf</build_depend>
+  <build_depend>tf2_ros</build_depend>
   
 
   <exec_depend>ros2launch</exec_depend>
