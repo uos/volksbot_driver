@@ -1,38 +1,41 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.8)
+project(volksbot_driver)
 
-project(volksbot_driver VERSION 1.0.2)
+# Configure C++ compiler
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-find_package(catkin REQUIRED 
-    COMPONENTS
-        roscpp
-        sensor_msgs
-        geometry_msgs
-        nav_msgs
-        tf
-        epos2_motor_controller)
+# Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(epos2_motor_controller REQUIRED)
 
-# find_package(
-#             LibEPOS2 NO_MODULE REQUIRED)
+# Add executable and link external dependencies
+add_executable(volksbot src/volksbot_node.cpp)
+ament_target_dependencies(volksbot geometry_msgs nav_msgs sensor_msgs tf2_ros epos2_motor_controller)
+ 
+target_include_directories(volksbot
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
 
-catkin_package(
-    #  INCLUDE_DIRS include
-    #  LIBRARIES volksbot_driver
-    CATKIN_DEPENDS roscpp sensor_msgs geometry_msgs nav_msgs tf epos2_motor_controller
-    #  DEPENDS system_lib
+# Install the launch directory and urdfs
+install(DIRECTORY
+  launch
+  config
+  urdf
+  meshes
+  DESTINATION share/${PROJECT_NAME}/
 )
 
-include_directories(${catkin_INCLUDE_DIRS} include/)
+# Install binaries
+install(TARGETS
+  volksbot
+  DESTINATION lib/${PROJECT_NAME})
 
-add_executable(volksbot 
-    src/volksbot_node.cpp 
-    src/volksbot.cpp)
-target_link_libraries(volksbot 
-    ${catkin_LIBRARIES})
-add_dependencies(volksbot 
-    ${catkin_EXPORTED_TARGETS})
-
-install(TARGETS volksbot RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-
-install(DIRECTORY launch/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
-install(DIRECTORY meshes/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/meshes)
-install(DIRECTORY urdf/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf)
+ament_package()

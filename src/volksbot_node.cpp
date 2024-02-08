@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Osnabrueck University
+ * Copyright (c) 2013, 2023 Osnabrueck University, Fulda University of Applied Sciences
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -10,9 +10,9 @@
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * * Neither the name of the Osnabrueck University nor the names of its
- *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission.
+ * * Neither the name Osnabrueck University or Fulda University of Applied Sciences 
+ *   nor the names of theis contributors may be used to endorse or promote products 
+ *   derived from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -27,75 +27,336 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <geometry_msgs/Twist.h>
-#include <nav_msgs/Odometry.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
-#include <sensor_msgs/JointState.h>
-#include <ros/ros.h>
-#include <ros/console.h>
 
-#include <string>
+#include <chrono>
 
-#include "volksbot.h"
 
-class ROSComm : public Comm
+#include <tf2/convert.h>
+
+#include "rclcpp/rclcpp.hpp"
+#include "volksbot_driver/volksbot_node.h"
+
+using namespace std::chrono_literals;
+using std::placeholders::_1;
+
+VolksbotNode::VolksbotNode() : rclcpp::Node("volksbot_base")
 {
-  public:
-    ROSComm(
-        const ros::NodeHandle &n,
-        double sigma_x,
-        double sigma_theta,
-        double cov_x_y,
-        double cov_x_theta,
-        double cov_y_theta,
-	size_t num_wheels,
-	std::vector<std::string> joint_names) :
-      n_(n),
-      sigma_x_(sigma_x),
-      sigma_theta_(sigma_theta),
-      cov_x_y_(cov_x_y),
-      cov_x_theta_(cov_x_theta),
-      cov_y_theta_(cov_y_theta),
-      publish_tf_(false),
-      odom_pub_(n_.advertise<nav_msgs::Odometry> ("odom", 10)),
-      joint_pub_(n_.advertise<sensor_msgs::JointState> ("joint_states", 1)),
-      num_wheels_(num_wheels),
-      joint_names_(joint_names){ }
+  // Save current time
+  last_cmd_vel_time_ = now();
+  
+  // Create timer and register callback
+  timer_ = this->create_wall_timer(100ms, std::bind(&VolksbotNode::cmdVelWatchdog, this));
 
-    virtual void send_odometry(double x, double y, double theta, double v_x,
-        double v_theta, double wheelpos_l, double wheelpos_r);
+  // Subscibe to cmd_vel
+  cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>( "cmd_vel", 10, std::bind(&VolksbotNode::cmdVelCallback, this, _1));
+  
+  // Create odometry publisher
+  odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
 
-    void setTFPrefix(const std::string &tf_prefix);
+  // Create publisher for joint states
+  joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", 1);
 
-  private:
-    void populateCovariance(nav_msgs::Odometry &msg, double v_x, double
-        v_theta);
+  // Create tf broadcaster
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
 
-    ros::NodeHandle n_;
-    double sigma_x_, sigma_theta_, cov_x_y_, cov_x_theta_, cov_y_theta_;
-    bool publish_tf_;
-    std::string tf_prefix_;
+  // Update configuration parameters
+  updateParams();
 
-    tf::TransformBroadcaster odom_broadcaster_;
-    ros::Publisher odom_pub_;
-    ros::Publisher joint_pub_;
-    size_t num_wheels_;
-    std::vector<std::string> joint_names_;
-};
-
-void ROSComm::setTFPrefix(const std::string &tf_prefix)
-{
-  tf_prefix_ = tf_prefix;
+  // Initialize controllers
+  init_motor_controllers();
 }
 
-void ROSComm::populateCovariance(nav_msgs::Odometry &msg, double v_x, double v_theta)
+VolksbotNode::~VolksbotNode()
+{
+  RCLCPP_INFO(this->get_logger(), "Shutting down motor controllers");
+  epos2_left_->setTargetVelocity(0.0);
+  epos2_right_->setTargetVelocity(0.0);
+  epos2_left_->close();
+  epos2_right_->close();
+}
+
+void VolksbotNode::updateParams()
+{
+  // Declare parameters
+  declare_parameter("wheel_radius", params_.wheel_radius);
+  declare_parameter("axis_length", params_.axis_length);
+  declare_parameter("gear_ratio", params_.gear_ratio);
+  declare_parameter("max_vel_l", params_.max_vel_l);
+  declare_parameter("max_vel_r", params_.max_vel_r);
+  declare_parameter("max_acc_l", params_.max_acc_l);
+  declare_parameter("max_acc_r", params_.max_acc_r);
+  declare_parameter("drive_backwards", params_.drive_backwards);
+  declare_parameter("turning_adaptation", params_.turning_adaptation);
+  declare_parameter("num_wheels", params_.num_wheels);
+  declare_parameter("x_stddev", params_.sigma_x);
+  declare_parameter("rotation_stddev", params_.sigma_theta);
+  declare_parameter("cov_xy", params_.cov_x_y);
+  declare_parameter("cov_xrotation", params_.cov_x_theta);
+  declare_parameter("cov_yrotation", params_.cov_y_theta);
+  declare_parameter("publish_tf", params_.publish_tf);
+  declare_parameter("tf_prefix", params_.tf_prefix);
+
+  //Get actual parameter values
+  get_parameter_or("wheel_radius", params_.wheel_radius, params_.wheel_radius);
+  get_parameter_or("axis_length", params_.axis_length, params_.axis_length);
+  get_parameter_or("gear_ratio", params_.gear_ratio, params_.gear_ratio);
+  get_parameter_or("max_vel_l", params_.max_vel_l, params_.max_vel_l);
+  get_parameter_or("max_vel_r", params_.max_vel_r, params_.max_vel_r);
+  get_parameter_or("max_acc_l", params_.max_acc_l, params_.max_acc_l);
+  get_parameter_or("max_acc_r", params_.max_acc_r, params_.max_acc_r);
+  get_parameter_or("drive_backwards", params_.drive_backwards, params_.drive_backwards);
+  get_parameter_or("turning_adaptation", params_.turning_adaptation, params_.turning_adaptation);
+  get_parameter_or("num_wheels", params_.num_wheels, params_.num_wheels);
+  get_parameter_or("x_stddev", params_.sigma_x, params_.sigma_x);
+  get_parameter_or("rotation_stddev", params_.sigma_theta, params_.sigma_theta);
+  get_parameter_or("cov_xy", params_.cov_x_y, params_.cov_x_y);
+  get_parameter_or("cov_xrotation", params_.cov_x_theta, params_.cov_x_theta);
+  get_parameter_or("cov_yrotation", params_.cov_y_theta, params_.cov_y_theta);
+  get_parameter_or("publish_tf", params_.publish_tf, params_.publish_tf);
+  get_parameter_or("tf_prefix", params_.tf_prefix, params_.tf_prefix);
+
+  // Try to get joint names from parameter
+  rclcpp::Parameter joint_param("joint_names", std::vector<std::string>());
+  this->get_parameter("joint_names", joint_param);
+  joint_names_ = joint_param.as_string_array();
+
+  if ((joint_names_.size() == 4) || (joint_names_.size() == 6))
+  {
+    RCLCPP_INFO(this->get_logger(), "Using names from parameters for %ld wheels.", joint_names_.size());
+    
+  }
+  else
+  {
+    if (params_.num_wheels == 4 || params_.num_wheels == 6)
+    {
+      if (params_.num_wheels == 6)
+      {
+        joint_names_ =
+            {
+                "left_front_wheel_joint",
+                "left_middle_wheel_joint",
+                "left_rear_wheel_joint",
+                "right_front_wheel_joint",
+                "right_middle_wheel_joint",
+                "right_rear_wheel_joint"};
+        RCLCPP_INFO(this->get_logger(), "Using default joint names for six wheels.");
+      }
+      else
+      {
+        joint_names_ =
+            {
+                "left_front_wheel_joint",
+                "left_rear_wheel_joint",
+                "right_front_wheel_joint",
+                "right_rear_wheel_joint"};
+        RCLCPP_INFO(this->get_logger(), "Using default joint names for four wheels.");
+      }
+    }
+    else
+    {
+      RCLCPP_FATAL(this->get_logger(), "Wrong volksbot driver configuration: Only four or six wheels are supported! Set param \"num_wheels\" correctly.");
+    }
+  }
+}
+
+void VolksbotNode::init_motor_controllers()
+{
+  RCLCPP_INFO(this->get_logger(), "Initializing motor controllers");
+
+  epos2_left_ = std::make_shared<CEpos2>(params_.drive_backwards ? 0x01 : 0x02);
+  epos2_right_ = std::make_shared<CEpos2>(params_.drive_backwards ? 0x02 : 0x01);
+
+  epos2_left_->init();
+  epos2_right_->init();
+
+  epos2_left_->enableController();
+  epos2_right_->enableController();
+
+  epos2_left_->enableMotor(epos2_left_->VELOCITY);
+  epos2_right_->enableMotor(epos2_right_->VELOCITY);
+
+  epos2_left_->setProfileData(
+      0,                 // Velocity
+      params_.max_vel_l, // Max Velocity
+      0,                 // Acceleration
+      0,                 // Deceleration
+      0,                 // QS Decel
+      params_.max_acc_l, // Max acc
+      0                  // Type: Trapecoidal
+  );
+
+  epos2_right_->setProfileData(
+      0,                 // Velocity
+      params_.max_vel_r, // Max Velocity
+      0,                 // Acceleration
+      0,                 // Deceleration
+      0,                 // QS Decel
+      params_.max_acc_r, // Max acc
+      0                  // Type: Trapecoidal
+  );
+
+  epos2_left_->setOperationMode(epos2_left_->VELOCITY);
+  epos2_right_->setOperationMode(epos2_right_->VELOCITY);
+}
+
+void VolksbotNode::odometry()
+{
+  static double x = 0.0;
+  static double y = 0.0;
+  static double theta = 0.0;
+  static long enc_left_last = epos2_left_->readEncoderCounter();
+  static long enc_right_last = epos2_right_->readEncoderCounter();
+  static long enc_per_turn_left = 4 * epos2_left_->getEncoderPulseNumber() * params_.gear_ratio;
+  static long enc_per_turn_right = 4 * epos2_right_->getEncoderPulseNumber() * params_.gear_ratio;
+
+  long enc_left = epos2_left_->readEncoderCounter();
+  long enc_right = epos2_right_->readEncoderCounter();
+  long wheel_l = enc_left - enc_left_last;
+  long wheel_r = enc_right - enc_right_last;
+
+  // handle overflow (> 10000 required to ensure we don't do this on zero crossings)
+  if ((abs(enc_left) > 10000) && (std::signbit(enc_left) != std::signbit(enc_left_last)))
+  {
+    if (std::signbit(enc_left))
+      wheel_l = std::numeric_limits<int32_t>::max() - enc_left_last - std::numeric_limits<int32_t>::min() + enc_left;
+    else
+      wheel_l = std::numeric_limits<int32_t>::max() - enc_left - std::numeric_limits<int32_t>::min() + enc_left_last;
+  }
+
+  if ((abs(enc_right) > 10000) && (std::signbit(enc_right) != std::signbit(enc_right_last)))
+  {
+    if (std::signbit(enc_right))
+      wheel_r = std::numeric_limits<int32_t>::max() - enc_right_last - std::numeric_limits<int32_t>::min() + enc_right;
+    else
+      wheel_r = std::numeric_limits<int32_t>::max() - enc_right - std::numeric_limits<int32_t>::min() + enc_right_last;
+  }
+
+  enc_left_last = enc_left;
+  enc_right_last = enc_right;
+
+  double rotation_L = 2.0 * M_PI * static_cast<double>(wheel_l) / static_cast<double>(enc_per_turn_left);
+  double rotation_R = -2.0 * M_PI * static_cast<double>(wheel_r) / static_cast<double>(enc_per_turn_right);
+
+  if (!std::isfinite(rotation_L))
+  {
+    RCLCPP_INFO(this->get_logger(), "Error rotation_L: %f", rotation_L);
+  }
+
+  if (!std::isfinite(rotation_R))
+  {
+    RCLCPP_INFO(this->get_logger(), "Error rotation_R: %f", rotation_R);
+  }
+
+  double wheel_L = params_.wheel_radius * rotation_L;
+  double wheel_R = params_.wheel_radius * rotation_R;
+
+  if (!std::isfinite(wheel_L))
+  {
+    RCLCPP_INFO(this->get_logger(), "Error wheel_L: %f", wheel_L);
+  }
+
+  if (!std::isfinite(wheel_R))
+  {
+    RCLCPP_INFO(this->get_logger(), "Error wheel_R: %f", wheel_R);
+  }
+
+  double dtheta = (wheel_R - wheel_L) / params_.axis_length * params_.turning_adaptation;
+  double hypothenuse = 0.5 * (wheel_L + wheel_R);
+
+  // update state
+  x += hypothenuse * cos(theta + dtheta * 0.5);
+  y += hypothenuse * sin(theta + dtheta * 0.5);
+  theta += dtheta;
+
+  if (theta > M_PI)
+    theta -= 2.0 * M_PI;
+  if (theta < -M_PI)
+    theta += 2.0 * M_PI;
+
+  rotation_l_ += rotation_L;
+  rotation_r_ += rotation_R;
+
+  double v_left = epos2_left_->readVelocity() / 60.0 / params_.gear_ratio * 2.0 * M_PI * params_.wheel_radius;
+  double v_right = -epos2_right_->readVelocity() / 60.0 / params_.gear_ratio * 2.0 * M_PI * params_.wheel_radius;
+  double v_x = (v_left + v_right) * 0.5;
+  double v_theta = (v_right - v_left) / params_.axis_length * params_.turning_adaptation;
+
+  double wheelpos_l = 2.0 * M_PI * (enc_left % enc_per_turn_left) / enc_per_turn_left;
+  if (wheelpos_l > M_PI)
+    wheelpos_l -= 2.0 * M_PI;
+  if (wheelpos_l < -M_PI)
+    wheelpos_l += 2.0 * M_PI;
+
+  double wheelpos_r = 2.0 * M_PI * (enc_right % enc_per_turn_right) / enc_per_turn_right;
+  if (wheelpos_r > M_PI)
+    wheelpos_r -= 2.0 * M_PI;
+  if (wheelpos_r < -M_PI)
+    wheelpos_r += 2.0 * M_PI;
+
+  publish_odometry(x, y, theta, v_x, v_theta);
+  publish_rotations(rotation_l_, rotation_r_);
+}
+
+void VolksbotNode::publish_odometry(double x, double y, double theta, double v_x, double v_theta)
+{
+  nav_msgs::msg::Odometry odom;
+
+  odom.header.frame_id = "odom";
+  odom.child_frame_id = "base_footprint";
+
+  tf2::Quaternion q;
+  q.setRPY(0, 0, theta);
+
+  odom.header.stamp = now();
+  odom.pose.pose.position.x = x;
+  odom.pose.pose.position.y = y;
+  odom.pose.pose.position.z = 0.0;
+
+  // Have to convert manually because tf2::toMsg() isn't working
+  odom.pose.pose.orientation.x = q.x();
+  odom.pose.pose.orientation.y = q.y();
+  odom.pose.pose.orientation.z = q.z();
+  odom.pose.pose.orientation.w = q.w();
+
+  odom.twist.twist.linear.x = v_x;
+  odom.twist.twist.linear.y = 0.0;
+  odom.twist.twist.angular.z = v_theta;
+
+  // Compute covriances and add to odom
+  populateCovariance(odom, v_x, v_theta);
+
+  odometry_publisher_->publish(odom);
+
+  if (params_.publish_tf)
+  {
+    geometry_msgs::msg::TransformStamped odom_trans;
+    odom_trans.header.frame_id = "odom_combined";
+    odom_trans.child_frame_id = "base_footprint";
+
+    odom_trans.header.stamp = now();
+    odom_trans.transform.translation.x = x;
+    odom_trans.transform.translation.y = y;
+    odom_trans.transform.translation.z = 0.0;
+
+    tf2::Quaternion rot;
+    rot.setRPY(0, 0, theta);
+
+    odom_trans.transform.rotation.x = rot.x();
+    odom_trans.transform.rotation.y = rot.y();
+    odom_trans.transform.rotation.z = rot.z();
+    odom_trans.transform.rotation.w = rot.w();
+
+    tf_broadcaster_->sendTransform(odom_trans);
+  }
+}
+
+void VolksbotNode::populateCovariance(nav_msgs::msg::Odometry &msg, double v_x, double v_theta)
 {
   double odom_multiplier = 1.0;
 
   if (fabs(v_x) <= 1e-8 && fabs(v_theta) <= 1e-8)
   {
-    //nav_msgs::Odometry has a 6x6 covariance matrix
+    // nav_msgs::msg::Odometryhas a 6x6 covariance matrix
     msg.twist.covariance[0] = 1e-12;
     msg.twist.covariance[35] = 1e-12;
 
@@ -104,12 +365,12 @@ void ROSComm::populateCovariance(nav_msgs::Odometry &msg, double v_x, double v_t
   }
   else
   {
-    //nav_msgs::Odometry has a 6x6 covariance matrix
-    msg.twist.covariance[0] = odom_multiplier * pow(sigma_x_, 2);
-    msg.twist.covariance[35] = odom_multiplier * pow(sigma_theta_, 2);
+    // nav_msgs::msg::Odometryhas a 6x6 covariance matrix
+    msg.twist.covariance[0] = odom_multiplier * pow(params_.sigma_x, 2);
+    msg.twist.covariance[35] = odom_multiplier * pow(params_.sigma_theta, 2);
 
-    msg.twist.covariance[30] = odom_multiplier * cov_x_theta_;
-    msg.twist.covariance[5] = odom_multiplier * cov_x_theta_;
+    msg.twist.covariance[30] = odom_multiplier * params_.cov_x_theta;
+    msg.twist.covariance[5] = odom_multiplier * params_.cov_x_theta;
   }
 
   msg.twist.covariance[7] = DBL_MAX;
@@ -131,201 +392,79 @@ void ROSComm::populateCovariance(nav_msgs::Odometry &msg, double v_x, double v_t
   }
   else
   {
-    msg.pose.covariance[7] = odom_multiplier * pow(sigma_x_, 2) * pow(sigma_theta_, 2);
+    msg.pose.covariance[7] = odom_multiplier * pow(params_.sigma_x, 2) * pow(params_.sigma_theta, 2);
 
-    msg.pose.covariance[1] = odom_multiplier * cov_x_y_;
-    msg.pose.covariance[6] = odom_multiplier * cov_x_y_;
+    msg.pose.covariance[1] = odom_multiplier * params_.cov_x_y;
+    msg.pose.covariance[6] = odom_multiplier * params_.cov_x_y;
 
-    msg.pose.covariance[31] = odom_multiplier * cov_y_theta_;
-    msg.pose.covariance[11] = odom_multiplier * cov_y_theta_;
+    msg.pose.covariance[31] = odom_multiplier * params_.cov_y_theta;
+    msg.pose.covariance[11] = odom_multiplier * params_.cov_y_theta;
   }
 }
 
-void ROSComm::send_odometry(double x, double y, double theta, double v_x, double v_theta, double wheelpos_l, double wheelpos_r)
+void VolksbotNode::publish_rotations(double rotation_R, double rotation_L)
 {
-  nav_msgs::Odometry odom;
-  odom.header.frame_id = tf::resolve(tf_prefix_, "odom_combined");
-  odom.child_frame_id = tf::resolve(tf_prefix_, "base_footprint");
-
-  odom.header.stamp = ros::Time::now();
-  odom.pose.pose.position.x = x;
-  odom.pose.pose.position.y = y;
-  odom.pose.pose.position.z = 0.0;
-  odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
-
-  odom.twist.twist.linear.x = v_x;
-  odom.twist.twist.linear.y = 0.0;
-  odom.twist.twist.angular.z = v_theta;
-  populateCovariance(odom, v_x, v_theta);
-
-  odom_pub_.publish(odom);
-
-  if (publish_tf_)
-  {
-    geometry_msgs::TransformStamped odom_trans;
-    odom_trans.header.frame_id = tf::resolve(tf_prefix_, "odom_combined");
-    odom_trans.child_frame_id = tf::resolve(tf_prefix_, "base_footprint");
-
-    odom_trans.header.stamp = ros::Time::now();
-    odom_trans.transform.translation.x = x;
-    odom_trans.transform.translation.y = y;
-    odom_trans.transform.translation.z = 0.0;
-    odom_trans.transform.rotation = tf::createQuaternionMsgFromYaw(theta);
-
-    odom_broadcaster_.sendTransform(odom_trans);
-  }
-
-  sensor_msgs::JointState joint_state;
-  joint_state.header.stamp = ros::Time::now();
-  joint_state.name.resize(num_wheels_);
-  joint_state.position.resize(num_wheels_);
+   sensor_msgs::msg::JointState joint_state;
+  joint_state.header.stamp = now();
+  joint_state.name.resize(params_.num_wheels);
+  joint_state.position.resize(params_.num_wheels);
   joint_state.name = joint_names_;
 
-  if(num_wheels_ == 6)
+  if(params_.num_wheels == 6)
   {
-    joint_state.position[0] = joint_state.position[1] = joint_state.position[2] = wheelpos_l;
-    joint_state.position[3] = joint_state.position[4] = joint_state.position[5] = wheelpos_r;
+    joint_state.position[0] = joint_state.position[1] = joint_state.position[2] = rotation_L;
+    joint_state.position[3] = joint_state.position[4] = joint_state.position[5] = rotation_R;
   }
   else
   {
-    joint_state.position[0] = joint_state.position[1] = wheelpos_l;
-    joint_state.position[2] = joint_state.position[3] = wheelpos_r; 
+    joint_state.position[0] = joint_state.position[1] = rotation_L;
+    joint_state.position[2] = joint_state.position[3] = rotation_R; 
   }
 
-  joint_pub_.publish(joint_state);
+  joint_state_publisher_->publish(joint_state);
 }
 
-class ROSCall
-{
-  public:
-    ROSCall(Volksbot &volksbot, double axis_length) :
-      volksbot_(volksbot),
-      axis_length_(axis_length),
-      last_cmd_vel_time_(0.0) { }
-    void velCallback(const geometry_msgs::Twist::ConstPtr& msg);
-    void cmd_velWatchdog(const ros::TimerEvent& event);
 
-  private:
-    Volksbot &volksbot_;
-    double axis_length_;
-    ros::Time last_cmd_vel_time_;
-};
-
-void ROSCall::velCallback(const geometry_msgs::Twist::ConstPtr& msg)
+double VolksbotNode::get_max_vel() const
 {
-  last_cmd_vel_time_ = ros::Time::now();
-  double max_vel = volksbot_.get_max_vel();
+  return (params_.max_vel_r + params_.max_vel_l) * M_PI * params_.wheel_radius / (60.0 * params_.gear_ratio);
+}
+
+void VolksbotNode::set_wheel_speed(double _v_l_target, double _v_r_target)
+{
+  epos2_left_->setTargetVelocity(_v_l_target / (2.0 * M_PI * params_.wheel_radius) * 60.0 * params_.gear_ratio);
+  epos2_right_->setTargetVelocity(-1.0 * _v_r_target / (2.0 * M_PI * params_.wheel_radius) * 60.0 * params_.gear_ratio);
+}
+
+void VolksbotNode::cmdVelWatchdog()
+{
+  if (now() - last_cmd_vel_time_ > rclcpp::Duration::from_seconds(0.6))
+  {
+    set_wheel_speed(0.0, 0.0);
+  }
+}
+
+void VolksbotNode::cmdVelCallback(geometry_msgs::msg::Twist::SharedPtr msg)
+{
+  last_cmd_vel_time_ = now();
+  double max_vel = get_max_vel();
   double velocity = msg->linear.x;
 
   velocity = std::min(max_vel, velocity);
   velocity = std::max(-max_vel, velocity);
-  volksbot_.set_wheel_speed(velocity - axis_length_ * msg->angular.z * 0.5, velocity + axis_length_ * msg->angular.z * 0.5);
+  set_wheel_speed(velocity - params_.axis_length * msg->angular.z * 0.5, velocity + params_.axis_length * msg->angular.z * 0.5);
+
 }
 
-void ROSCall::cmd_velWatchdog(const ros::TimerEvent& event)
+int main(int argc, char **argv)
 {
-  if (ros::Time::now() - last_cmd_vel_time_ > ros::Duration(0.6))
-    volksbot_.set_wheel_speed(0.0, 0.0);
-}
+  rclcpp::init(argc, argv);
+  std::shared_ptr<VolksbotNode> node = std::make_shared<VolksbotNode>();
 
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "volksbot");
-  ros::NodeHandle n;
-  ros::NodeHandle nh_ns("~");
-
-  /* This is the wheel Radius for the odometry, accounting for some slip in the movement.
-   * therefor it's not the same as the one in the volksbot.urdf.xacro */
-  double wheel_radius;
-  nh_ns.param("wheel_radius", wheel_radius, 0.0985);
-  double axis_length;
-  nh_ns.param("axis_length", axis_length, 0.41);
-  int gear_ratio;
-  nh_ns.param("gear_ratio", gear_ratio, 74);
-  int max_vel_l;
-  nh_ns.param("max_vel_l", max_vel_l, 8250);
-  int max_vel_r;
-  nh_ns.param("max_vel_r", max_vel_r, 8400);
-  int max_acc_l;
-  nh_ns.param("max_acc_l", max_acc_l, 10000);
-  int max_acc_r;
-  nh_ns.param("max_acc_r", max_acc_r, 10000);
-  bool drive_backwards;
-  nh_ns.param("drive_backwards", drive_backwards, false);
-
-  double turning_adaptation;
-  nh_ns.param("turning_adaptation", turning_adaptation, 0.95);
-
-  int num_wheels;
-  // 4 or 6 wheels are supported
-  nh_ns.param("num_wheels", num_wheels, 6);
-  if(num_wheels != 4 && num_wheels != 6)
+  while(rclcpp::ok())
   {
-    ROS_FATAL("Wrong configuration of the volksbot driver: Only four or six wheels are supported! See param \"num_wheels\".");
-    exit(1);
-  }
-
-  std::vector<std::string> joint_names;
-  if(nh_ns.getParam("joint_names", joint_names))
-  {
-    if(num_wheels != joint_names.size())
-    {
-      ROS_FATAL("Wrong configuration of the volksbot driver: The number of joint names must equak the number of wheels!");
-      exit(1);
-    }
-    ROS_INFO("Using joint names from \"joint_names\" parameter list");    
-  }
-  else if(num_wheels == 6)
-  {
-    ROS_INFO("Using default joint names for six wheels.");    
-    // default values;
-    joint_names = {
-      "left_front_wheel_joint",
-      "left_middle_wheel_joint",
-      "left_rear_wheel_joint",
-      "right_front_wheel_joint",
-      "right_middle_wheel_joint",
-      "right_rear_wheel_joint"
-    };
-  }
-  else
-  {
-    // default values;
-    ROS_INFO("Using default joint names for four wheels.");    
-    joint_names = {
-      "left_front_wheel_joint",
-      "left_rear_wheel_joint",
-      "right_front_wheel_joint",
-      "right_rear_wheel_joint"
-    };
-  }
-
-  double sigma_x, sigma_theta, cov_x_y, cov_x_theta, cov_y_theta;
-  nh_ns.param("x_stddev", sigma_x, 0.002);
-  nh_ns.param("rotation_stddev", sigma_theta, 0.017);
-  nh_ns.param("cov_xy", cov_x_y, 0.0);
-  nh_ns.param("cov_xrotation", cov_x_theta, 0.0);
-  nh_ns.param("cov_yrotation", cov_y_theta, 0.0);
-
-  ROSComm roscomm(n, sigma_x, sigma_theta, cov_x_y, cov_x_theta, cov_y_theta, num_wheels, joint_names);
-
-  Volksbot volksbot(roscomm, wheel_radius, axis_length, turning_adaptation, gear_ratio, max_vel_l, max_vel_r, max_acc_l, max_acc_r, drive_backwards);
-
-  bool publish_tf;
-  nh_ns.param("publish_tf", publish_tf, false);
-  std::string tf_prefix;
-  tf_prefix = tf::getPrefixParam(nh_ns);
-  roscomm.setTFPrefix(tf_prefix);
-
-  ROSCall roscall(volksbot, axis_length);
-
-  ros::Timer timer = n.createTimer(ros::Duration(0.1), &ROSCall::cmd_velWatchdog, &roscall);
-  ros::Subscriber cmd_vel_sub = n.subscribe("cmd_vel", 10, &ROSCall::velCallback, &roscall);
-
-  while (ros::ok())
-  {
-    volksbot.odometry();
-    ros::spinOnce();
+    rclcpp::spin_some(node);
+    node->odometry();
   }
 
   return 0;

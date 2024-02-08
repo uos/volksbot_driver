@@ -14,7 +14,7 @@
   <xacro:property name="wheel_x_offset" value="0.225" />
   <xacro:property name="wheel_z_offset" value="-0.0275" />
   <xacro:property name="turning_adaptation" value="0.95" />
-  <xacro:property name="base_mass" value="10" />
+  <xacro:property name="base_mass" value="10.001" />
   <xacro:property name="wheel_mass" value="0.25" />
 
   <xacro:property name="base_link_length" value="0.55"/>
@@ -26,7 +26,7 @@
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <!--<box size="${base_link_length} ${base_link_width} ${base_link_height}" />-->
-        <mesh filename="package://volksbot_driver/meshes/base.stl"/>
+        <mesh filename="file://$(find volksbot_driver)/meshes/base.stl"/>
       </geometry>
       <material name="grey" >
         <color rgba="0.5 0.5 0.5 1" />
@@ -36,7 +36,7 @@
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <!--<box size="${base_link_length} ${base_link_width} ${base_link_height}" />-->
-        <mesh filename="package://volksbot_driver/meshes/base.stl"/>
+        <mesh filename="file://$(find volksbot_driver)/meshes/base.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -55,7 +55,7 @@
         <origin xyz="0 0 0" rpy="${M_PI/2} 0 ${rotate_visual * M_PI}" />
         <geometry>
           <!--<cylinder length="${wheel_width}" radius="${wheel_radius}"/>-->
-          <mesh filename="package://volksbot_driver/meshes/wheel.stl" />
+          <mesh filename="file://$(find volksbot_driver)/meshes/wheel.stl" />
         </geometry>
         <material name="blackish">
           <color rgba="0.2 0.2 0.2 1"/>
@@ -67,7 +67,7 @@
         <geometry>
           <!-- using STL for collision to fix http://answers.ros.org/question/2368/gazebo-model-wheels-slip-after-upgrade-to-electric -->
           <!--<cylinder length="${wheel_width}" radius="${wheel_radius}"/>-->
-          <mesh filename="package://volksbot_driver/meshes/wheel.stl" />
+          <mesh filename="file://$(find volksbot_driver)/meshes/wheel.stl" />
         </geometry>
       </collision>
       <inertial>
