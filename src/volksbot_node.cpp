@@ -452,6 +452,13 @@ void VolksbotNode::cmdVelCallback(geometry_msgs::msg::Twist::SharedPtr msg)
 
   velocity = std::min(max_vel, velocity);
   velocity = std::max(-max_vel, velocity);
+
+  if((abs(velocity) + params_.axis_length * abs(msg->angular.z) * 0.5) > max_vel)
+  {
+    double diff = (abs(velocity) + params_.axis_length * abs(msg->angular.z) * 0.5) - max_vel;
+    velocity -= std::copysign(diff,velocity);
+  }
+
   set_wheel_speed(velocity - params_.axis_length * msg->angular.z * 0.5, velocity + params_.axis_length * msg->angular.z * 0.5);
 
 }
