@@ -115,6 +115,24 @@ void VolksbotNode::updateParams()
   get_parameter_or("publish_tf", params_.publish_tf, params_.publish_tf);
   get_parameter_or("tf_prefix", params_.tf_prefix, params_.tf_prefix);
 
+
+  RCLCPP_INFO(this->get_logger(), "wheel_radius: %f", params_.wheel_radius);
+  RCLCPP_INFO(this->get_logger(), "axis_length: %f", params_.axis_length);
+  RCLCPP_INFO(this->get_logger(), "gear_ratio: %ld", params_.gear_ratio);
+  RCLCPP_INFO(this->get_logger(), "max_vel_l: %ld", params_.max_vel_l);
+  RCLCPP_INFO(this->get_logger(), "max_vel_r: %ld", params_.max_vel_r);
+  RCLCPP_INFO(this->get_logger(), "max_acc_l: %ld", params_.max_acc_l);
+  RCLCPP_INFO(this->get_logger(), "max_acc_r: %ld", params_.max_acc_r);
+  RCLCPP_INFO(this->get_logger(), "drive_backwards: %d", params_.drive_backwards);
+  RCLCPP_INFO(this->get_logger(), "turning_adaptation: %f", params_.turning_adaptation);
+  RCLCPP_INFO(this->get_logger(), "num_wheels: %ld", params_.num_wheels);
+  RCLCPP_INFO(this->get_logger(), "x_stddev: %f", params_.sigma_x);
+  RCLCPP_INFO(this->get_logger(), "rotation_stddev: %f", params_.sigma_theta);
+  RCLCPP_INFO(this->get_logger(), "cov_x_y: %f", params_.cov_x_y);
+  RCLCPP_INFO(this->get_logger(), "cov_x_theta: %f", params_.cov_x_theta);
+  RCLCPP_INFO(this->get_logger(), "cov_y_theta: %f", params_.cov_y_theta);
+  RCLCPP_INFO(this->get_logger(), "publish_tf: %d", params_.publish_tf);
+  RCLCPP_INFO(this->get_logger(), "tf_prefix: %s", params_.tf_prefix.c_str());
   // Try to get joint names from parameter
   rclcpp::Parameter joint_param("joint_names", std::vector<std::string>());
   this->get_parameter("joint_names", joint_param);
