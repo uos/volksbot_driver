@@ -5,15 +5,17 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import xacro
+import yaml
+import ament_index_python.packages
 
 def generate_launch_description():
 
-    # Declare launch configuratuin parameters
-    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
-    num_wheels = LaunchConfiguration('num_wheels', default=4)
-    wheel_radius = LaunchConfiguration('wheel_radius', default=0.0985)
-    publish_tf = LaunchConfiguration('publish_tf', default='false')
-    #tf_prefix = LaunchConfiguration("tf_prefix", '')
+    config_directory = os.path.join(
+        ament_index_python.packages.get_package_share_directory('volksbot_driver'),
+        'config')
+    param_config = os.path.join(config_directory, 'volksbot.yaml')
+    with open(param_config, 'r') as f:
+        params = yaml.safe_load(f)['volksbot']['ros__parameters']
 
     # Get Volksbot URDF / xacro file and parse into valid URDF 
     # description
@@ -29,44 +31,12 @@ def generate_launch_description():
     # arguments and node configurations. Here we launch a 
     # robot state publisher and volksbot instance
     return LaunchDescription([
-        DeclareLaunchArgument(
-            'use_sim_time',
-            default_value='false',
-            description='Use simulation (Gazebo) clock if true'),
-        DeclareLaunchArgument(
-            'num_wheels',
-            default_value='4',
-            description='Number of wheels of robot base'),
-        DeclareLaunchArgument(
-            'wheel_radius',
-            default_value='0.0985',
-            description='Volksbot wheel radius'),
         
-        DeclareLaunchArgument(
-            'axis_length',
-            default_value='0.435',
-            description='Volksbot axis length'),
-
-        DeclareLaunchArgument(
-            'publish_tf',
-            default_value='false',
-            description='Publish tf data'),
-
-        DeclareLaunchArgument(
-            'turning_adaptation',
-            default_value='0.95',
-            description='turning_adaptation'),
-
-        DeclareLaunchArgument(
-            'tf_prefix',
-            default_value='',
-            description='tf prefix. Attention: currently not used in driver!'),
-
         Node(
             package='volksbot_driver',
             executable='volksbot',
             name='volksbot',
-            parameters=[{'num_wheels': num_wheels, 'wheel_radius': wheel_radius,'robot_description': robot_desc}],
+            parameters=[params],
             output='screen'),
     ])
 

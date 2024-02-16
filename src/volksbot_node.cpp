@@ -468,6 +468,9 @@ void VolksbotNode::cmdVelCallback(geometry_msgs::msg::Twist::SharedPtr msg)
   double max_vel = get_max_vel();
   double velocity = msg->linear.x;
 
+  RCLCPP_INFO(this->get_logger(), "Velo: %f / %f", velocity,max_vel);
+  RCLCPP_INFO(this->get_logger(), "Z: %f", msg->angular.z);
+
   velocity = std::min(max_vel, velocity);
   velocity = std::max(-max_vel, velocity);
 
@@ -476,7 +479,7 @@ void VolksbotNode::cmdVelCallback(geometry_msgs::msg::Twist::SharedPtr msg)
     double diff = (abs(velocity) + params_.axis_length * abs(msg->angular.z) * 0.5) - max_vel;
     velocity -= std::copysign(diff,velocity);
   }
-
+  RCLCPP_INFO(this->get_logger(), "Velo2: %f / %f", velocity,max_vel);
   set_wheel_speed(velocity - params_.axis_length * msg->angular.z * 0.5, velocity + params_.axis_length * msg->angular.z * 0.5);
 
 }
